@@ -1,0 +1,4 @@
+If you are using wsl on windows, you have to install VcXsrv X Server (http://vcxarv.sourceforge.net) and start it, accept all of the display request
+also, you have to export DISPLAY=<Windows IP, not wsl IP>:0.0
+
+xclock

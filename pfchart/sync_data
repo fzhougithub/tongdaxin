@@ -1,0 +1,6 @@
+#!/bin/bash
+
+python sync_s_basic.py
+
+python sync_data.py
+

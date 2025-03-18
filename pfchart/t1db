@@ -1,0 +1,5 @@
+#!/bin/bash
+
+calculate_charts_t1
+
+load_bars_t1

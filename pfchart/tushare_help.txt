@@ -1,0 +1,31 @@
+>>> print a.get_k_data.__doc__;
+
+    获取k线数据
+    ---------
+    Parameters:
+      code:string
+                  股票代码 e.g. 600848
+      start:string
+                  开始日期 format：YYYY-MM-DD 为空时取上市首日
+      end:string
+                  结束日期 format：YYYY-MM-DD 为空时取最近一个交易日
+      autype:string
+                  复权类型，qfq-前复权 hfq-后复权 None-不复权，默认为qfq
+      ktype：string
+                  数据类型，D=日k线 W=周 M=月 5=5分钟 15=15分钟 30=30分钟 60=60分钟，默认为D
+      retry_count : int, 默认 3
+                 如遇网络等问题重复执行的次数
+      pause : int, 默认 0
+                重复请求数据过程中暂停的秒数，防止请求间隔时间太短出现的问题
+    return
+    -------
+      DataFrame
+          date 交易日期 (index)
+          open 开盘价
+          high  最高价
+          close 收盘价
+          low 最低价
+          volume 成交量
+          amount 成交额
+          turnoverratio 换手率
+          code 股票代码

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+for i in $(ls /var/tmp/history/*_t1.csv);
+do
+	sid=$(echo $i|cut -d/ -f5|cut -d_ -f1)
+        cmd="truncate tmp_bar_t1; copy tmp_bar_t1 from '${i}' delimiter ',' csv header; insert into pf_bars_t1 select '${sid}',* from tmp_bar_t1 on conflict(symbol,seq) do nothing; "
+	#echo $cmd 
+	/usr/local/bin/psql -Uwls -dfzdb -c "$cmd"
+done
+
+#/usr/local/bin/psql -Uwls -dfzdb -c "truncate tmp_bar_t1; copy tmp_bar_t1 from '/var/tmp/history/000930_t1.csv' delimiter ',' csv header; insert into pf_bars_t1 select '000930',* from tmp_bar_t1 on conflict(symbol,seq) do nothing; "

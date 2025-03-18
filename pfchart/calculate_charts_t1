@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ $(find /var/tmp/history/ -mtime -1|grep s_list|wc -l) -eq 0 ];then
+   python get_s_list.py
+fi
+
+# need to also check the names from s_names
+
+for i in $(cat /var/tmp/history/s_list|cut -d, -f1);
+do
+    if [ $(find /var/tmp/history -mtime -1|grep ${i}|wc -l) -eq 0  ];then
+        python get_s_history.py $i
+    fi
+    python calculate_chart.py $i 0
+done
+

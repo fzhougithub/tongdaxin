@@ -1,0 +1,9 @@
+This is the todo list will be summarized at the end of every working day. 
+1. per bars: start data, end data handling, should cross calculation, save, load until reuse
+2. Implement download and load all of the history data. 
+
+Fixed.2. Draw could not print the chart correctly, need to go back to check the data saved. 
+   Per 2. DataFrame add list, use the reverse order, why? But already correct the usage, totally wrong. 
+   here, use assumption like, 
+   C=turnpoint. Actually, should develop the further algorithm to catch the missing data, and fully fill the chart. 
+

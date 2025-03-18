@@ -1,0 +1,10 @@
+#!/bin/bash
+
+list=$(psql -Uwls -dfzdb -c "select code from s_basic"|egrep -v "code|---|\(")
+
+for i in $list
+do
+    echo $i
+    python CalculatePerPrice.py $i
+done
+
