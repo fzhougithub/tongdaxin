@@ -1,0 +1,19 @@
+#!/bin/bash
+
+shpath=/var/tellme/stock/sh
+szpath=/var/tellme/stock/sz
+shlist=$(ls $shpath)
+szlist=$(ls $szpath)
+
+conn_str="postgresql://pfchart:pfchart1@localhost:5432/fzhou"
+
+for i in $szlist; do 
+	psql $conn_str  -c "COPY stock.stockhistory (symbol, day, o, h, l, c, amount, v,last) from '$szpath/$i' DELIMITER ',' csv;"
+	echo $i $(date)
+done
+
+for i in $shlist; do 
+	psql $conn_str  -c "COPY stock.stockhistory (symbol, day, o, h, l, c, amount, v,last) from '$shpath/$i' DELIMITER ',' csv;"
+	echo $i $(date)
+done
+

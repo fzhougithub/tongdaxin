@@ -1,0 +1,30 @@
+#!/bin/bash
+
+szpath=/var/tellme/stock/sz
+shpath=/var/tellme/stock/sh
+szlist=$(ls $szpath)
+shlist=$(ls $shpath)
+
+# Test mongodb connection
+#conn_str="mongodb://192.168.1.75:27017"
+#python write_data.py postgresql://pfchart:pfchart1@localhost:5432/fzhou fzhou stockhistory /var/tellme/stock/sh/sh999999.day
+#below string is for the write_tongdaxin.py input, it is not for the batch loading in this script
+dbconn_str='postgresql://pfchart:pfchart1@localhost:5432/fzhou fzhou stockhistory'
+conn_str='postgresql://pfchart:pfchart1@localhost:5432/fzhou'
+
+if  psql $conn_str -c 'select 1' -t ;then
+	echo postgresql db is OK for loading
+else
+	echo postgresql db hearbeat failed
+	exit 1
+fi
+
+for i in $szlist; do 
+	echo $i $(date) 
+	#python3 write_tongdaxin.py "mongodb://192.168.1.75" stock stockhistory /var/tellme/stock/sz/$i
+done
+
+for i in $shlist; do 
+	echo $i; $(date)
+	#python3 write_tongdaxin.py "mongodb://192.168.1.75" stock stockhistory /var/tellme/stock/sh/$i
+done

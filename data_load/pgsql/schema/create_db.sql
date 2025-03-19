@@ -16,13 +16,23 @@ grant insert on all tables in schema stock to pfchart;
 grant delete on all tables in schema stock to pfchart;
 
 alter role pfchart set search_path to stock,public,"$user";
+GRANT pg_read_server_files TO pfchart;
 
 psql -h localhost -d fzhou -U pfchart -W
 
 
-create table stockhistory(symbol char(6),day date,o decimal(10,2),h decimal(10,2),l decimal(10,2),c decimal(10,2), amount decimal(20,2),v decimal(10,
-2), primary key (symbol,day));
-
+CREATE TABLE IF NOT EXISTS {table_name} (
+    symbol VARCHAR(50),
+    day DATE,
+    o FLOAT,
+    h FLOAT,
+    l FLOAT,
+    c FLOAT,
+    amount FLOAT,
+    v FLOAT,
+    last FLOAT,
+    PRIMARY KEY (symbol, day) -- Unique constraint on symbol and day
+);
 
 
 https://www.postgresql.org/docs/current/catalogs.html
