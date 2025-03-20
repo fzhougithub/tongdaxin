@@ -1,9 +1,12 @@
 This part is for load data into postgresql 
 
+daily_update: If you already initialized the table, and loaded the data, you suppose just need to run this code to add the missing records into table
+
 1. read_data the script will try to read tongdaxin data file and create csv files for loading
 2. prepare_data the script to add the symbol value into the csv data file, because the original file put the symbol info in file name
 3. batch_load_db:This is the script to batch load all of the csv files into the databse for first time. 
 
+4. update_tongdaxin:after first time load batch, everyday just load the latest part using this code. 
 
 Notes
 1. write_tongdaxin.py This method is pretty slow, use import. The script will use postgresql utility to load the data into postgresql table. 

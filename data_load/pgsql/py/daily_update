@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# The code assume the stock.stockhistory table already there and has data, this is just grab the latest tongdaxin update, and update the existing table with the final records
+
+shpath=/var/tellme/stock/sh
+szpath=/var/tellme/stock/sz
+shlist=$(ls $shpath)
+szlist=$(ls $szpath)
+
+conn_str="postgresql://pfchart:pfchart1@localhost:5432/fzhou"
+
+read_new {
+for i in $szlist; do 
+	#echo $i $(date)
+	python3 read_tongdaxin.py $szpath/$i /var/tellme/stock/sz/$i
+done
+
+for i in $shlist; do 
+	#echo $i $(date)
+	python3 read_tongdaxin.py $shpath/$i /var/tellme/stock/sh/$i
+done
+}
+
+
+update_new{
+for i in $szlist; do
+        #echo $i $(date)
+        python3 update_tongdaxin.py $i /var/tellme/stock/sz/$i
+done
+
+for i in $shlist; do
+        #echo $i $(date)
+        python3 update_tongdaxin.py $i /var/tellme/stock/sh/$i
+done
+}
+
+#read_new
+prepare_data
+update_new
