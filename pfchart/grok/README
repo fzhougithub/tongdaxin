@@ -1,5 +1,18 @@
+Manually run 
 python app.py
 
 http://localhost:5000
 
 This folder contain the final part of drawing pfchart
+
+Service
+you need to 
+
+sudo useradd -m flaskuser
+sudo chown -R flaskuser:flaskuser /var/tellme/work/tongdaxin/pfchart/grok
+sudo chown -R flaskuser:flaskuser /var/tellme/work/p3
+
+cp flask-app.service /usr/lib/systemd/system/.
+
+systemctl daemon-reload
+systemctl start flask-app

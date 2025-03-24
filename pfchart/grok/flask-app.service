@@ -1,0 +1,17 @@
+[Unit]
+Description=Flask Web App for Point and Figure Chart Generator
+After=network.target
+
+[Service]
+Type=simple
+User=flaskuser
+WorkingDirectory=/var/tellme/work/tongdaxin/pfchart/grok
+ExecStart=/var/tellme/work/p3/bin/python3 /var/tellme/work/tongdaxin/pfchart/grok/app.py
+Restart=always
+RestartSec=10
+Environment="FLASK_ENV=production"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

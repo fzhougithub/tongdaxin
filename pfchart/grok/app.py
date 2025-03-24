@@ -9,6 +9,7 @@ app = Flask(__name__)
 SCRIPT_DIR = "/var/tellme/work/tongdaxin/pfchart/grok"
 CHART_OUTPUT_DIR = "/mnt/c/Users/Admin/Pictures/stock"
 STATIC_DIR = os.path.join(SCRIPT_DIR, "static")
+PYTHON_EXECUTABLE = "/var/tellme/work/p3/bin/python3"  # Path to virtual environment's Python
 
 # Ensure the static directory exists
 if not os.path.exists(STATIC_DIR):
@@ -38,8 +39,8 @@ def index():
                 chart_path = os.path.join(CHART_OUTPUT_DIR, chart_filename)
                 static_chart_path = os.path.join(STATIC_DIR, chart_filename)
 
-                # Run the script
-                cmd = ["python", "pfbucket_psql_function.py", symbol, "--step", str(step)]
+                # Run the script using the virtual environment's Python
+                cmd = [PYTHON_EXECUTABLE, "pfbucket_psql_function.py", symbol, "--step", str(step)]
                 result = subprocess.run(cmd, cwd=SCRIPT_DIR, capture_output=True, text=True)
 
                 # Check if the chart was generated
