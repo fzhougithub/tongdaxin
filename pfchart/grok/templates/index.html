@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Point and Figure Chart Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        .form-container {
+            margin-bottom: 20px;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .chart-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .chart-wrapper {
+            position: relative;
+            max-width: 100%;
+            max-height: 80vh; /* Adjust this to control the maximum height */
+            overflow: auto; /* Enable scrolling */
+            border: 1px solid #ccc; /* Optional: Add a border for visibility */
+            display: inline-block; /* Center the wrapper */
+        }
+        .chart-image {
+            width: 100%; /* Initial width */
+            height: auto; /* Maintain aspect ratio */
+            transition: transform 0.3s ease; /* Smooth zoom transition */
+        }
+        .zoom-controls {
+            margin-top: 10px;
+        }
+        .zoom-controls button {
+            padding: 5px 10px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Point and Figure Chart Generator</h1>
+    <div class="form-container">
+        <form method="POST">
+            <label for="symbol">Stock Symbol:</label>
+            <input type="text" id="symbol" name="symbol" placeholder="e.g., 600050" required>
+            <br><br>
+            <label for="step">Step Size:</label>
+            <input type="number" id="step" name="step" step="0.1" placeholder="e.g., 0.3" required>
+            <br><br>
+            <button type="submit">Generate Chart</button>
+        </form>
+    </div>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if chart_url %}
+        <div class="chart-container">
+            <h2>Generated Chart</h2>
+            <div class="chart-wrapper">
+                <img id="chart-image" class="chart-image" src="{{ chart_url }}" alt="Point and Figure Chart">
+            </div>
+            <div class="zoom-controls">
+                <button onclick="zoomIn()">Zoom In</button>
+                <button onclick="zoomOut()">Zoom Out</button>
+                <button onclick="resetZoom()">Reset Zoom</button>
+            </div>
+        </div>
+    {% endif %}
+
+    <script>
+        let scale = 1; // Initial scale factor
+        const chartImage = document.getElementById('chart-image');
+        const minScale = 0.5; // Minimum zoom level
+        const maxScale = 2.0; // Maximum zoom level
+        const scaleStep = 0.1; // Zoom step size
+
+        function zoomIn() {
+            if (scale < maxScale) {
+                scale += scaleStep;
+                chartImage.style.transform = `scale(${scale})`;
+            }
+        }
+
+        function zoomOut() {
+            if (scale > minScale) {
+                scale -= scaleStep;
+                chartImage.style.transform = `scale(${scale})`;
+            }
+        }
+
+        function resetZoom() {
+            scale = 1;
+            chartImage.style.transform = `scale(${scale})`;
+        }
+    </script>
+</body>
+</html>
