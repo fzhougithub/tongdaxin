@@ -1,113 +1,123 @@
-CREATE OR REPLACE FUNCTION calculate_pf_chart_pg(symbol_name TEXT, step FLOAT DEFAULT NULL)
-RETURNS JSONB AS $$
+CREATE OR REPLACE FUNCTION stock.calculate_pf_chart_pg(symbol_name text, step double precision DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
 DECLARE
-    history JSONB;
-    max_price FLOAT;
-    min_price FLOAT;
-    price_range FLOAT;
-    computed_step FLOAT;
-    reversal_threshold FLOAT;
-    buckets JSONB DEFAULT '[]'::JSONB;
-    current_bucket JSONB;
-    record JSONB;
-    price FLOAT;
-    volume FLOAT;
-    bucket_idx INT;
+    history RECORD;
+    buckets jsonb[] := '{}';
+    current_mark char := 'X';  -- Start with uptrend
+    current_low double precision;
+    current_high double precision;
+    current_volume double precision := 0;
+    current_start_day date;
+    price double precision;
+    prev_price double precision;
+    prev_high double precision;  -- Track previous bucket's high
+    prev_low double precision;   -- Track previous bucket's low
+    direction int := 1;  -- 1 for up, -1 for down
+    box_size double precision;
+    reversal_size int := 3;  -- Standard 3-box reversal
+    min_steps int := 3;  -- Minimum steps for a new bar after reversal
 BEGIN
-    -- Fetch stock history for the given symbol
-    SELECT jsonb_agg(jsonb_build_object('day', day, 'c', c, 'v', v) order by day)
-    INTO history
-    FROM stock.stockhistory
-    WHERE stockhistory.symbol = symbol_name;
-
-    -- Return empty array if no history found
-    IF history IS NULL THEN
-        RETURN '[]'::JSONB;
-    END IF;
-
-    -- Calculate max, min prices
-    SELECT MAX((r->>'c')::FLOAT), MIN((r->>'c')::FLOAT)
-    INTO max_price, min_price
-    FROM jsonb_array_elements(history) AS r;
-
-    price_range := max_price - min_price;
-
-    -- Determine step size
-    IF step IS NULL OR step <= 0 THEN
-        computed_step := price_range / 50;
-        IF computed_step = 0 THEN
-            computed_step := 1.0;
-        END IF;
+    -- Determine step size if not provided
+    IF step IS NULL THEN
+        SELECT (MAX(c) - MIN(c)) / 50 INTO box_size
+        FROM stock.stockhistory
+        WHERE symbol = symbol_name;
     ELSE
-        computed_step := step;
+        box_size := step;
     END IF;
 
-    -- Define reversal threshold
-    reversal_threshold := 3 * computed_step;
+    -- Initialize with the first record
+    SELECT c, v, day INTO price, current_volume, current_start_day
+    FROM stock.stockhistory
+    WHERE symbol = symbol_name
+    ORDER BY day ASC
+    LIMIT 1;
 
-    -- Iterate through history and compute Point & Figure chart
-    FOR record IN SELECT * FROM jsonb_array_elements(history) LOOP
-        price := (record->>'c')::FLOAT;
-        volume := (record->>'v')::FLOAT;
+    current_low := price;
+    current_high := price;
+    prev_high := price;
+    prev_low := price;
 
-        IF jsonb_array_length(buckets) = 0 THEN
-            bucket_idx := FLOOR((price - min_price) / computed_step);
-            current_bucket := jsonb_build_object(
-                'mark', 'X',
-                'high', price,
-                'low', price,
-                'volume', volume,
-                'start_day', record->>'day'
-            );
-            buckets := jsonb_insert(buckets, '{0}', current_bucket);
-        ELSE
-            -- Process according to last bucket mark
-            IF (current_bucket->>'mark') = 'X' THEN
-                IF price > (current_bucket->>'high')::FLOAT THEN
-                    current_bucket := current_bucket || jsonb_build_object(
-                        'high', price,
-                        'volume', (current_bucket->>'volume')::FLOAT + volume
-                    );
-                ELSIF price <= (current_bucket->>'high')::FLOAT - reversal_threshold THEN
-                    current_bucket := jsonb_build_object(
-                        'mark', 'O',
-                        'high', price,
-                        'low', price,
-                        'volume', volume,
-                        'start_day', record->>'day'
-                    );
-                    buckets := buckets || current_bucket;
-                ELSE
-                    current_bucket := current_bucket || jsonb_build_object(
-                        'volume', (current_bucket->>'volume')::FLOAT + volume,
-                        'low', LEAST((current_bucket->>'low')::FLOAT, price)
-                    );
+    -- Process each price in history
+    FOR history IN (
+        SELECT c, v, day
+        FROM stock.stockhistory
+        WHERE symbol = symbol_name
+        ORDER BY day ASC
+    ) LOOP
+        prev_price := price;
+        price := history.c;
+        current_volume := current_volume + history.v;
+
+        -- Check if price movement continues in the same direction
+        IF direction = 1 THEN  -- Uptrend
+            IF price > current_high THEN
+                current_high := price;
+            ELSIF price < current_high - box_size * reversal_size THEN
+                -- Reversal: End current bucket and start a downtrend
+                buckets := array_append(buckets, jsonb_build_object(
+                    'mark', 'X',
+                    'low', current_low,
+                    'high', current_high,
+                    'volume', current_volume,
+                    'start_day', current_start_day
+                ));
+                direction := -1;
+                -- Start new O bar one step below the previous high
+                current_high := current_high - box_size;  -- One step below previous high
+                -- Ensure the new bar spans at least 3 steps
+                current_low := current_high - box_size * min_steps;
+                -- Adjust low if price is higher than the minimum required low
+                IF price > current_low THEN
+                    current_low := price;
                 END IF;
-            ELSIF (current_bucket->>'mark') = 'O' THEN
-                IF price < (current_bucket->>'low')::FLOAT THEN
-                    current_bucket := current_bucket || jsonb_build_object(
-                        'low', price,
-                        'volume', (current_bucket->>'volume')::FLOAT + volume
-                    );
-                ELSIF price >= (current_bucket->>'low')::FLOAT + reversal_threshold THEN
-                    current_bucket := jsonb_build_object(
-                        'mark', 'X',
-                        'high', price,
-                        'low', price,
-                        'volume', volume,
-                        'start_day', record->>'day'
-                    );
-                    buckets := buckets || current_bucket;
-                ELSE
-                    current_bucket := current_bucket || jsonb_build_object(
-                        'volume', (current_bucket->>'volume')::FLOAT + volume,
-                        'high', GREATEST((current_bucket->>'high')::FLOAT, price)
-                    );
+                current_volume := history.v;
+                current_start_day := history.day;
+                current_mark := 'O';
+                prev_high := current_high;
+                prev_low := current_low;
+            END IF;
+        ELSE  -- Downtrend
+            IF price < current_low THEN
+                current_low := price;
+            ELSIF price > current_low + box_size * reversal_size THEN
+                -- Reversal: End current bucket and start an uptrend
+                buckets := array_append(buckets, jsonb_build_object(
+                    'mark', 'O',
+                    'low', current_low,
+                    'high', current_high,
+                    'volume', current_volume,
+                    'start_day', current_start_day
+                ));
+                direction := 1;
+                -- Start new X bar one step above the previous low
+                current_low := current_low + box_size;  -- One step above previous low
+                -- Ensure the new bar spans at least 3 steps
+                current_high := current_low + box_size * min_steps;
+                -- Adjust high if price is lower than the minimum required high
+                IF price < current_high THEN
+                    current_high := price;
                 END IF;
+                current_volume := history.v;
+                current_start_day := history.day;
+                current_mark := 'X';
+                prev_high := current_high;
+                prev_low := current_low;
             END IF;
         END IF;
     END LOOP;
 
-    RETURN buckets;
+    -- Add the last bucket
+    buckets := array_append(buckets, jsonb_build_object(
+        'mark', current_mark,
+        'low', current_low,
+        'high', current_high,
+        'volume', current_volume,
+        'start_day', current_start_day
+    ));
+
+    RETURN array_to_json(buckets)::jsonb;
 END;
-$$ LANGUAGE plpgsql;
+$$;
