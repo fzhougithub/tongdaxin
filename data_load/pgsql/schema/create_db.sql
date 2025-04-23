@@ -17,11 +17,16 @@ grant delete on all tables in schema stock to pfchart;
 
 alter role pfchart set search_path to stock,public,"$user";
 GRANT pg_read_server_files TO pfchart;
+alter user pfchart set search_path to stock,pfchart,public;
+
+add below line into /var/tellme/pgsql/data/pg_hba.conf
+
+host    fzhou           pfchart         127.0.0.1/24            peer
 
 psql -h localhost -d fzhou -U pfchart -W
 
 
-CREATE TABLE IF NOT EXISTS {table_name} (
+CREATE TABLE IF NOT EXISTS stock.stockhistory (
     symbol VARCHAR(50),
     day DATE,
     o FLOAT,
@@ -32,7 +37,22 @@ CREATE TABLE IF NOT EXISTS {table_name} (
     v FLOAT,
     last FLOAT,
     PRIMARY KEY (symbol, day) -- Unique constraint on symbol and day
-);
+); 
+#partition by list(symbol);
+
+Then, we have to pre-create partitions for each of the symbol, it will be changed in future, we rely on the script
+
+-- Partition for symbol 'AAPL'
+CREATE TABLE {table_name}_aapl PARTITION OF {table_name}
+FOR VALUES IN ('AAPL');
+
+-- Partition for symbol 'GOOG'
+CREATE TABLE {table_name}_goog PARTITION OF {table_name}
+FOR VALUES IN ('GOOG');
+
+-- Partition for symbol 'MSFT'
+CREATE TABLE {table_name}_msft PARTITION OF {table_name}
+FOR VALUES IN ('MSFT');
 
 
 https://www.postgresql.org/docs/current/catalogs.html
@@ -58,5 +78,25 @@ fzhou-# ;
  pg_use_reserved_connections
  pg_create_subscription
 (16 rows)
+
+
+alter table stock.history rename to stockhistory_init;
+
+CREATE TABLE IF NOT EXISTS stock.stockhistory (
+    symbol VARCHAR(50),
+    day DATE,
+    o FLOAT,
+    h FLOAT,
+    l FLOAT,
+    c FLOAT,
+    amount FLOAT,
+    v FLOAT,
+    last FLOAT,
+    PRIMARY KEY (symbol, day) -- Unique constraint on symbol and day
+)partition by list(symbol);
+
+
+fzhou=# create table stockhistory_300001 partition of stock.stockhistory for values in ('300001');
+CREATE TABLE
 
 

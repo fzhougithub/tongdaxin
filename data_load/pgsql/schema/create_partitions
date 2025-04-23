@@ -1,0 +1,55 @@
+First of all, create the default partition
+
+CREATE TABLE stockhistory_default PARTITION OF stockhistory
+DEFAULT;
+
+Then, generate partition creation scripts
+
+\o create_partitions_60.sql
+fzhou=# SELECT distinct 'create table stockhistory_' || symbol || ' partition of stockhistory for values in (''' || symbol || ''');'
+FROM stock.stockhistory_init
+WHERE symbol LIKE '60%';
+\o
+
+\o create_partitions_300.sql
+fzhou=# SELECT distinct 'create table stockhistory_' || symbol || ' partition of stockhistory for values in (''' || symbol || ''');'
+FROM stock.stockhistory_init
+WHERE symbol LIKE '300%';
+\o
+
+
+\o create_partitions_00.sql
+fzhou=# SELECT distinct 'create table stockhistory_' || symbol || ' partition of stockhistory for values in (''' || symbol || ''');'
+FROM stock.stockhistory_init
+WHERE symbol LIKE '00%';
+\o
+
+modify the generated file, get rid of the header and the footer
+
+\i create_partitions_60.sql
+\i create_partitions_300.sql
+\i create_partitions_00.sql
+
+Then, dump the original table
+ pg_dump -Ft -f stockhistory_init.dmp -t stock.stockhistory_init fzhou
+
+Then, load the data into new partitioned table stockhistory
+
+alter table stock.stockhistory_init rename to stockhistory_init_bak;
+alter table stock.stockhistory rename to stockhistory_init;
+
+pg_restore -h localhost -U root -d fzhou --verbose --data-only stockhistory_init.dmp
+
+
+Partition table reload need some trick
+#!/bin/bash
+PARTITIONS=$(psql -h localhost -U root -d fzhou -t -c "SELECT inhrelid::regclass FROM pg_inherits WHERE inhparent = 'stock.stockhistory_init'::regclass LIMIT 100")
+for PART in $PARTITIONS; do
+  pg_restore -h localhost -U root -d fzhou --data-only --verbose -t "$PART" stockhistory_init.dmp
+done
+
+After all, rename table back
+
+alter table stock.stockhistory_init rename to stockhistory;
+
+

@@ -1,0 +1,94 @@
+-- Materialized view for weekly aggregation
+CREATE MATERIALIZED VIEW stock.stockhistory_weekly AS
+SELECT DISTINCT ON (symbol, date_trunc('week', day))
+    symbol,
+    date_trunc('week', day) AS week_start,
+    FIRST_VALUE(o) OVER (PARTITION BY symbol, date_trunc('week', day) ORDER BY day ASC) AS open_price,
+    MAX(h) OVER (PARTITION BY symbol, date_trunc('week', day)) AS high_price,
+    MIN(l) OVER (PARTITION BY symbol, date_trunc('week', day)) AS low_price,
+    LAST_VALUE(c) OVER (PARTITION BY symbol, date_trunc('week', day) ORDER BY day ASC) AS close_price,
+    SUM(amount) OVER (PARTITION BY symbol, date_trunc('week', day)) AS amount_sum,
+    SUM(v) OVER (PARTITION BY symbol, date_trunc('week', day)) AS volume_sum,
+    SUM(last) OVER (PARTITION BY symbol, date_trunc('week', day)) AS last_sum
+FROM stock.stockhistory
+ORDER BY symbol, date_trunc('week', day), day ASC
+WITH DATA;
+
+-- Create index for efficient refreshes and queries
+CREATE UNIQUE INDEX stockhistory_weekly_idx ON stock.stockhistory_weekly (symbol, week_start);
+
+-- Materialized view for monthly aggregation
+CREATE MATERIALIZED VIEW stock.stockhistory_monthly AS
+SELECT DISTINCT ON (symbol, date_trunc('month', day))
+    symbol,
+    date_trunc('month', day) AS month_start,
+    FIRST_VALUE(o) OVER (PARTITION BY symbol, date_trunc('month', day) ORDER BY day ASC) AS open_price,
+    MAX(h) OVER (PARTITION BY symbol, date_trunc('month', day)) AS high_price,
+    MIN(l) OVER (PARTITION BY symbol, date_trunc('month', day)) AS low_price,
+    LAST_VALUE(c) OVER (PARTITION BY symbol, date_trunc('month', day) ORDER BY day ASC) AS close_price,
+    SUM(amount) OVER (PARTITION BY symbol, date_trunc('month', day)) AS amount_sum,
+    SUM(v) OVER (PARTITION BY symbol, date_trunc('month', day)) AS volume_sum,
+    SUM(last) OVER (PARTITION BY symbol, date_trunc('month', day)) AS last_sum
+FROM stock.stockhistory
+ORDER BY symbol, date_trunc('month', day), day ASC
+WITH DATA;
+
+-- Create index for efficient refreshes and queries
+CREATE UNIQUE INDEX stockhistory_monthly_idx ON stock.stockhistory_monthly (symbol, month_start);
+
+-- Materialized view for quarterly aggregation
+CREATE MATERIALIZED VIEW stock.stockhistory_quarterly AS
+SELECT DISTINCT ON (symbol, date_trunc('quarter', day))
+    symbol,
+    date_trunc('quarter', day) AS quarter_start,
+    FIRST_VALUE(o) OVER (PARTITION BY symbol, date_trunc('quarter', day) ORDER BY day ASC) AS open_price,
+    MAX(h) OVER (PARTITION BY symbol, date_trunc('quarter', day)) AS high_price,
+    MIN(l) OVER (PARTITION BY symbol, date_trunc('quarter', day)) AS low_price,
+    LAST_VALUE(c) OVER (PARTITION BY symbol, date_trunc('quarter', day) ORDER BY day ASC) AS close_price,
+    SUM(amount) OVER (PARTITION BY symbol, date_trunc('quarter', day)) AS amount_sum,
+    SUM(v) OVER (PARTITION BY symbol, date_trunc('quarter', day)) AS volume_sum,
+    SUM(last) OVER (PARTITION BY symbol, date_trunc('quarter', day)) AS last_sum
+FROM stock.stockhistory
+ORDER BY symbol, date_trunc('quarter', day), day ASC
+WITH DATA;
+
+-- Create index for efficient refreshes and queries
+CREATE UNIQUE INDEX stockhistory_quarterly_idx ON stock.stockhistory_quarterly (symbol, quarter_start);
+
+-- Materialized view for yearly aggregation
+CREATE MATERIALIZED VIEW stock.stockhistory_yearly AS
+SELECT DISTINCT ON (symbol, date_trunc('year', day))
+    symbol,
+    date_trunc('year', day) AS year_start,
+    FIRST_VALUE(o) OVER (PARTITION BY symbol, date_trunc('year', day) ORDER BY day ASC) AS open_price,
+    MAX(h) OVER (PARTITION BY symbol, date_trunc('year', day)) AS high_price,
+    MIN(l) OVER (PARTITION BY symbol, date_trunc('year', day)) AS low_price,
+    LAST_VALUE(c) OVER (PARTITION BY symbol, date_trunc('year', day) ORDER BY day ASC) AS close_price,
+    SUM(amount) OVER (PARTITION BY symbol, date_trunc('year', day)) AS amount_sum,
+    SUM(v) OVER (PARTITION BY symbol, date_trunc('year', day)) AS volume_sum,
+    SUM(last) OVER (PARTITION BY symbol, date_trunc('year', day)) AS last_sum
+FROM stock.stockhistory
+ORDER BY symbol, date_trunc('year', day), day ASC
+WITH DATA;
+
+-- Create index for efficient refreshes and queries
+CREATE UNIQUE INDEX stockhistory_yearly_idx ON stock.stockhistory_yearly (symbol, year_start);
+
+
+
+
+
+
+
+
+
+
+===================================================
+
+Used Window Functions for Sums: The SUM() function is now also used as a window function with the same partitioning as the other window functions. This calculates the sum of amount, v, and last for each week (or month, quarter, year) within each symbol.
+
+DISTINCT ON (symbol, date_trunc('week', day)): We use DISTINCT ON to select only one row for each unique combination of symbol and week_start (or month_start, quarter_start, year_start). Since the window functions operate over the entire partition, the first row encountered for each week (after ordering) will contain the correct FIRST_VALUE, MAX, MIN, LAST_VALUE, and the SUM over that entire week.
+
+ORDER BY symbol, date_trunc('week', day), day ASC: The ORDER BY clause ensures that within each partition (symbol and time period), the data is ordered by day, which is crucial for FIRST_VALUE and LAST_VALUE to pick the correct open and close prices.
+
+

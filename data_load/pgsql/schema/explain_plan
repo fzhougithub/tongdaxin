@@ -1,0 +1,57 @@
+fzhou=#  explain SELECT DISTINCT ON (symbol, date_trunc('week', day))
+    symbol,
+    date_trunc('week', day) AS week_start,
+    FIRST_VALUE(o) OVER (PARTITION BY symbol, date_trunc('week', day) ORDER BY day ASC) AS open_price,
+    MAX(h) OVER (PARTITION BY symbol, date_trunc('week', day)) AS high_price,
+    MIN(l) OVER (PARTITION BY symbol, date_trunc('week', day)) AS low_price,
+    LAST_VALUE(c) OVER (PARTITION BY symbol, date_trunc('week', day) ORDER BY day ASC) AS close_price,
+    SUM(amount) OVER (PARTITION BY symbol, date_trunc('week', day)) AS amount_sum,
+    SUM(v) OVER (PARTITION BY symbol, date_trunc('week', day)) AS volume_sum,
+    SUM(last) OVER (PARTITION BY symbol, date_trunc('week', day)) AS last_sum
+FROM stock.stockhistory
+ORDER BY symbol, date_trunc('week', day), day ASC;
+                                                                     QUERY PLAN
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+---------
+ Unique  (cost=1476432.77..3984329.80 rows=40000 width=75)
+   ->  WindowAgg  (cost=1476432.77..3915227.34 rows=13820492 width=75)
+         ->  WindowAgg  (cost=1476373.61..3466061.35 rows=13820492 width=91)
+               ->  Gather Merge  (cost=1476373.33..3085997.82 rows=13820492 width=75)
+                     Workers Planned: 2
+                     ->  Sort  (cost=1475373.31..1489770.10 rows=5758717 width=75)
+                           Sort Key: stockhistory.symbol, (date_trunc('week'::text, (stockhistory.day)::timestamp with time zone)), stockhis
+tory.day
+                           ->  Parallel Append  (cost=0.00..316983.67 rows=5758717 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_default stockhistory_4200  (cost=0.00..102652.03 rows=2299402 width=7
+5)
+                                 ->  Parallel Seq Scan on stockhistory_600733 stockhistory_3058  (cost=0.00..136.10 rows=3740 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_600178 stockhistory_2619  (cost=0.00..134.92 rows=3728 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000560 stockhistory_151  (cost=0.00..120.61 rows=2107 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000001 stockhistory_1  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000009 stockhistory_9  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000011 stockhistory_11  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000012 stockhistory_12  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000014 stockhistory_13  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000026 stockhistory_22  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000027 stockhistory_23  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000036 stockhistory_31  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000069 stockhistory_54  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000078 stockhistory_56  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000089 stockhistory_58  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000096 stockhistory_60  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000157 stockhistory_70  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000400 stockhistory_78  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000402 stockhistory_80  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000417 stockhistory_91  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000419 stockhistory_92  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000423 stockhistory_96  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000428 stockhistory_99  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000501 stockhistory_104  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000518 stockhistory_116  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000530 stockhistory_126  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000532 stockhistory_128  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000539 stockhistory_134  (cost=0.00..78.62 rows=1375 width=75)
+                                 ->  Parallel Seq Scan on stockhistory_000548 stockhistory_141  (cost=0.00..78.62 rows=1375 width=75)
+
+The underneath partitions, be parallel 
